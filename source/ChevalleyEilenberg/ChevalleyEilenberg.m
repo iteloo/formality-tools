@@ -19,7 +19,7 @@
 
 
 
-BeginPackage["ChevalleyEilenberg`",{"Helpers`"}]
+BeginPackage["FormalityTools`ChevalleyEilenberg`",{"FormalityTools`Helpers`"}]
 
 
 SetupCEComplex::usage="Set up for computation using the input dgla."
@@ -35,6 +35,8 @@ RowBox[{\"p\", \",\", \"q\"}]]\):\!\(\*SuperscriptBox[\"A\",
 RowBox[{
 RowBox[{\"p\", \"+\", \"1\"}], \",\", \"q\"}]]\)\[Rule]\!\(\*SuperscriptBox[\"A\", 
 RowBox[{\"p\", \",\", \"q\"}]]\)."
+countDim::usage="Returns functions to quickly calculate dimensions of \!\(\*SuperscriptBox[\"A\", 
+RowBox[{\"p\", \",\", \"q\"}]]\)"
 
 
 Begin["`Private`"]
@@ -98,6 +100,11 @@ Flatten[Table[
 If[dim[i+q]!=0&&Length[LI[p,i]]!=0,map[#,i+q]&/@LI[p,i],##&[]]
 ,{i,Max[0,-q],Min[top-q,p top]}]]
 ]
+
+
+(* returns functions to quickly calculate dimensions of A^(p,q) *)
+countDim[p_,q_]:=Sum[Times@@dim/@Flatten[V/.{map->List,prod->List}],{V,AI[p,q]}];
+countDim[p_,q_,dims_List]:=Sum[Times@@(dims[[#+1]]&)/@Flatten[V/.{map->List,prod->List}],{V,AI[p,q]}];
 
 
 (* returns the Koszul sign; involves various hacks *)

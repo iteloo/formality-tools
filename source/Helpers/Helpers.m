@@ -19,13 +19,14 @@
 
 
 
-BeginPackage["Helpers`"];
+BeginPackage["FormalityTools`Helpers`"];
 
 
 absTiming::usage="Print time used in evaluating enclsed expressions";
 ClearCache::usage="Delete all values except for definitions using patterns"; 
 enum::usage="";
 zip::usage="";
+split::usage"";
 displayTable::usage="";
 exportIfNeeded::usage="Wraps Export, but only exports if file does not already exist.";
 
@@ -36,6 +37,9 @@ linIndep::usage="";
 subspaceIntersect::usage="";
 ZeroTensorQ::usage="";
 padToSquare::usage="Pad m and b so that mx=b is a square system"
+
+
+Expect::usage="Used to test a value against an expected value. Generates a message if the two do not agree.";
 
 
 Begin["`Private`"];
@@ -58,6 +62,7 @@ SetAttributes[ClearCache,HoldAll];
 
 
 enum[list_List]:=Table[{i,list[[i]]},{i,Length[list]}]
+split[l_List]:=Transpose[l,{2,1}]
 zip[a_List,b_List]:=Transpose[{a,b}]
 displayTable[table_,rows_,columns_]:={{""}~Join~(Rotate[#,90Degree]&/@columns)}~Join~Join[Transpose[{rows}],table,2]//TableForm
 exportIfNeeded[filename_String,expr_]:=If[!FileExistsQ[filename],Export[filename,expr]]
@@ -76,11 +81,7 @@ Transpose[t1,j1].Transpose[t2,j2]
 sym[t_]:=Sum[Transpose[t,{1}~Join~perm],{perm, Permutations[Range[2,Length[Dimensions[t]]]]}];
 
 
-linIndep[S_?ArrayQ]:=Module[{reduced,pivots},
-reduced=RowReduce[Transpose[S]];
-pivots=Flatten[Table[Position[row,1,1,1],{row,reduced}]]; (*this should conveniently remove results from rows of zeros as well*)
-S[[pivots]]
-];
+linIndep[S_?ArrayQ]:=Part[S,Flatten[Position[#,1,1,1]&/@RowReduce@Transpose@S]](*this should conveniently remove results from rows of zeros as well*)
 
 
 subspaceIntersect[S1_?ArrayQ,T1_?ArrayQ]:=Module[{S,T,d,reduced,zerorow,relations,multipliers},
@@ -95,12 +96,20 @@ multipliers=Take[#,-Length[T]]&/@relations;
 ];
 
 
-ZeroTensorQ[L_List]:=Module[{l=Flatten[L]},Count[l,0]==Length[l]];
+ZeroTensorQ[L_]:=Length@ArrayRules@SparseArray[L]==1/;Head[L]==SparseArray
+ZeroTensorQ[L_]:=Module[{l=Flatten[L]},Count[l,0]==Length[l]]/;Head[L]==List
 
 
 padToSquare[m_,b_]:=Module[{max},
 max=Max@@Dimensions[m];
 {PadRight[m,{max,max}],PadRight[b,max]}
+]
+
+
+Expect::TestFailed="Test '`3`' failed:\n\tExpected: `1`\n\tObtained: `2`";
+Expect[val_,expr_,desc_:"untitled"]:=
+If[Not[val===expr],
+Message[Expect::TestFailed,val,expr,desc]
 ]
 
 

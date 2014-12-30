@@ -19,12 +19,12 @@
 
 
 
-BeginPackage["DglaHilbnC3`",{"Helpers`"}];
+BeginPackage["FormalityTools`DglaHilbnC3`",{"FormalityTools`Helpers`"}];
 
 
 SetupDgla::usage="Set up the dgla using the partition describing a monimial ideal.";
 CleanDgla::usage="Clean up the dgla.";
-Dgla::usage="Returns the dgla associated with the partition used in SetupDgla. Currently will override previous SetupDgla";
+Dgla::usage="Returns the dgla associated with the input partition. If no input is given, it will use the partition currently set up. Will override previous SetupDgla.";
 d::usage="The differential";
 c::usage="The graded Lie bracket";
 
@@ -35,19 +35,25 @@ Begin["`Private`"];
 SetupDgla[\[Mu]in_List]:=Module[{},
 CleanDgla[];
 \[Mu]=\[Mu]in;
+nonzeroDegrees=Range[3];
 ]
 
 
 CleanDgla[]:=Module[{},
-ClearCache/@Unevaluated/@Unevaluated[{\[Mu],B,c,d,pp,P,n}];
+ClearCache/@Unevaluated/@Unevaluated[{\[Mu],B,c,d,pp,P,nonzeroDegrees,dO}];
 ]
 
 
-Dgla[\[Mu]in_]:=Module[{top=3,result},
+Dgla[]:=Module[{},
+{
+Table[{i,d[i]},{i,Select[nonzeroDegrees,MemberQ[nonzeroDegrees,#+1]&]}],Table[With[{i=\[Alpha][[1]],j=\[Alpha][[2]]},{{i,j},c[i,j]}],{\[Alpha],Select[Flatten[Outer[List,nonzeroDegrees,nonzeroDegrees],1],MemberQ[nonzeroDegrees,Plus@@#]&]}]
+}
+]
+
+
+Dgla[\[Mu]in_]:=Module[{result},
 SetupDgla[\[Mu]in];
-result={
-Table[{i,d[i]},{i,0,top-1}],Flatten[Table[{{i,j},c[i,j]},{i,0,top},{j,0,top-i}],1]
-};
+result=Dgla[];
 CleanDgla[];
 result
 ]
@@ -56,6 +62,10 @@ result
 e[i_]:=e[i]=Table[KroneckerDelta[i,j],{j,1,3}];
 \[Delta]=KroneckerDelta;
 \[Delta]12[i_,J_]:=\[Delta]12[i,J]=Boole[{{2,3},{3,1},{1,2}}[[i]]==J];
+
+
+pp[r_,h_]:=pp[r,h]=Boole[MemberQ[\[Mu],r]]\[Delta][r,h];
+P[i_,h_,r_]:=pp[r+e[i],h];
 
 
 B[x_]:=B[x]=Switch[x,
@@ -129,6 +139,38 @@ _,
 0
 ]
 ];
+
+
+dO[index_]:=dO[index]=SparseArray@Switch[index,
+0,
+Module[{i,h,r,l,m},
+Table[
+{i,h,r}=\[Alpha];
+{l,m}=a;
+P[i,h,l]\[Delta][r,m]-P[i,m,r]\[Delta][h,l]
+,{\[Alpha],B[1]},{a,B[0]}]
+],
+1,
+Module[{i,j,h,r,k,l,m},
+Table[
+{{i,j},h,r}=\[Beta];
+{k,l,m}=\[Alpha];
+\[Delta][j,k](P[i,h,l]\[Delta][r,m]
+-P[i,m,r]\[Delta][h,l])
+-\[Delta][i,k](P[j,h,l]\[Delta][r,m]
+-P[j,m,r]\[Delta][h,l])
+,{\[Beta],B[2]},{\[Alpha],B[1]}]
+],
+2,
+Module[{h,r,J,p,q},Table[
+{h,r}=b;
+{J,p,q}=\[Beta];
+Sum[\[Delta]12[i,J](P[i,h,p]\[Delta][r,q]-P[i,q,r]\[Delta][p,h]),{i,{1,2,3}}]
+,{b,B[3]},{\[Beta],B[2]}]
+],
+_,
+{}
+]
 
 
 End[];
